@@ -1,7 +1,6 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { FileConversionResult } from "../utils/fileUtils";
-import { FashionPromptData } from "../App"; // Import FashionPromptData for type usage
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { FileConversionResult, FashionPromptData } from '@/lib/types';
 
 const API_KEY = process.env.API_KEY;
 
@@ -10,10 +9,10 @@ if (!API_KEY || API_KEY.trim() === "") {
   // Potentially throw an error here or handle it in a way that alerts the user in the UI
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
+const ai = new GoogleGenerativeAI(API_KEY!);
 const model = 'gemini-2.5-flash-preview-04-17';
 
-interface ImageInput extends FileConversionResult {} 
+type ImageInput = FileConversionResult;
 
 interface GeneratePromptParams {
   imagesToProcess?: ImageInput[]; 

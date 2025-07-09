@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
-import { getBrandById } from '@/lib/brands';
+// import { getBrandById } from '@/lib/brands';
 
 // Configuration
 const FLUX_MODEL = "flux-kontext-apps/multi-image-list";
@@ -312,15 +312,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Get actual brand data
-    const brand = getBrandById(brandId);
-    if (!brand) {
-      return NextResponse.json(
-        { error: "Brand not found" },
-        { status: 404 }
-      );
-    }
+    // const brand = getBrandById(brandId);
+    // if (!brand) {
+    //   return NextResponse.json(
+    //     { error: "Brand not found" },
+    //     { status: 404 }
+    //   );
+    // }
     
-    console.log(`🎨 Generating ${count} brand images for ${brand.name}...`);
+    console.log(`🎨 Generating ${count} brand images for brandId: ${brandId}...`);
     console.log(`📸 Using ${processedImageUrls.length} input images`);
     
     // Parse the 4 distinct prompts from Gemini response
@@ -350,9 +350,9 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < promptsToUse.length; i++) {
       try {
         console.log(`🔄 Generating variation ${i + 1}/${promptsToUse.length}...`);
-        const result = await generateSingleImageWithRetry(processedImageUrls, promptsToUse[i], brand.name, i + 1);
+        const result = await generateSingleImageWithRetry(processedImageUrls, promptsToUse[i], brandId, i + 1);
         generatedImages.push(result);
-        console.log(`✅ ${brand.name} variation ${i + 1} succeeded`);
+        console.log(`✅ ${brandId} variation ${i + 1} succeeded`);
         
         // Small delay between requests
         if (i < promptsToUse.length - 1) {
@@ -361,21 +361,21 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         failures.push(`Variation ${i + 1}: ${errorMessage}`);
-        console.error(`❌ ${brand.name} variation ${i + 1} failed:`, errorMessage);
+        console.error(`❌ ${brandId} variation ${i + 1} failed:`, errorMessage);
       }
     }
     
-    console.log(`✅ Successfully generated ${generatedImages.length}/${count} ${brand.name} variations`);
+    console.log(`✅ Successfully generated ${generatedImages.length}/${count} ${brandId} variations`);
     
     if (generatedImages.length === 0) {
       throw new Error(`All ${count} variations failed: ${failures.join(', ')}`);
     }
     
-    console.log(`🎉 Final result: ${generatedImages.length} images generated for ${brand.name}`);
+    console.log(`🎉 Final result: ${generatedImages.length} images generated for ${brandId}`);
     
     return NextResponse.json({ 
       images: generatedImages,
-      brandName: brand.name,
+      brandName: brandId,
       method: "replicate",
       success: true 
     });
