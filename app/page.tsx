@@ -40,6 +40,25 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
+// Utility to upload a file to /api/upload and get a public URL
+async function uploadFileToBlob(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch('/api/upload', { method: 'POST', body: formData });
+  if (!res.ok) throw new Error('Failed to upload file');
+  const data = await res.json();
+  return data.url;
+}
+
+// Utility to delete a blob by URL
+async function deleteBlobUrl(url: string): Promise<void> {
+  await fetch('/api/upload', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+}
+
 export default function AdvancedFashionCopilot() {
   const [isAdvancedMode, setIsAdvancedMode] = useState(false)
   const [currentView, setCurrentView] = useState<"upload" | "processing">("upload")
@@ -173,17 +192,14 @@ export default function AdvancedFashionCopilot() {
       setSimpleModeError(null);
       try {
         // 1. Analyze garments
-        const garmentImagesBase64 = await Promise.all(
-          garmentImages.map(async (img) => ({
-            mimeType: img.file.type,
-            base64: await fileToBase64(img.file),
-          }))
+        const garmentImageUrls = await Promise.all(
+          garmentImages.map(async (img) => await uploadFileToBlob(img.file))
         );
         const analysisRes = await fetch('/api/v1/fashion/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            garmentImages: garmentImagesBase64,
+            garmentImages: garmentImageUrls.map((url) => ({ url })),
             backgroundRefImages: [],
             modelRefImages: [],
           }),
@@ -198,8 +214,7 @@ export default function AdvancedFashionCopilot() {
           body: JSON.stringify({
             prompt: analysisData.initialJsonPrompt,
             aspect_ratio: '3:4',
-            input_image_1: garmentImagesBase64[0]?.base64,
-            input_image_2: garmentImagesBase64[1]?.base64 || garmentImagesBase64[0]?.base64,
+            input_images: garmentImageUrls,
           }),
         });
         const frontImageData = await frontImageRes.json();
@@ -210,7 +225,7 @@ export default function AdvancedFashionCopilot() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            originalGarmentImages: garmentImagesBase64,
+            originalGarmentImages: garmentImageUrls,
             generatedFashionImage: { base64: frontImageData.imageUrl, mimeType: 'image/png' },
             analysisData,
           }),
@@ -237,7 +252,7 @@ export default function AdvancedFashionCopilot() {
                 prompt: refinedPrompts[i].prompt,
                 aspect_ratio: '3:4',
                 input_image_1: frontImageData.imageUrl,
-                input_image_2: garmentImagesBase64[0]?.base64,
+                input_image_2: garmentImageUrls[0],
               }),
             });
             const data = await res.json();
@@ -278,6 +293,9 @@ export default function AdvancedFashionCopilot() {
     }
 
     // ADVANCED MODE (existing logic)
+    const garmentImageUrls = await Promise.all(
+      garmentImages.map(async (img) => await uploadFileToBlob(img.file))
+    );
     const imagesToGenerate = Array.from({ length: 4 }, (_, index) => ({
       id: `${type}-${index}`,
       title: `${type.charAt(0).toUpperCase() + type.slice(1)} Image ${index + 1}`,
@@ -296,8 +314,8 @@ export default function AdvancedFashionCopilot() {
           body: JSON.stringify({
             prompt,
             aspect_ratio: "3:4",
-            input_image_1: garmentImagesBase64[0]?.base64,
-            input_image_2: garmentImagesBase64[1]?.base64 || garmentImagesBase64[0]?.base64,
+            input_image_1: garmentImageUrls[0],
+            input_image_2: garmentImageUrls[1] || garmentImageUrls[0],
           }),
         });
         const data = await res.json();
