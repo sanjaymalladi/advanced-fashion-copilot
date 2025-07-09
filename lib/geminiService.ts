@@ -2,14 +2,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { FileConversionResult, FashionPromptData } from '@/lib/types';
 
-const API_KEY = process.env.API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-if (!API_KEY || API_KEY.trim() === "") {
-  console.error("API_KEY environment variable not set or is empty. Please ensure it is configured.");
+if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
+  console.error("GEMINI_API_KEY environment variable not set or is empty. Please ensure it is configured.");
   // Potentially throw an error here or handle it in a way that alerts the user in the UI
 }
 
-const ai = new GoogleGenerativeAI(API_KEY!);
+const ai = new GoogleGenerativeAI(GEMINI_API_KEY!);
 const model = 'gemini-2.5-flash-preview-04-17';
 
 type ImageInput = FileConversionResult;
